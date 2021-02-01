@@ -4,18 +4,19 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/lambda-platform/lambda/DB"
-	"github.com/lambda-platform/lambda/config"
 	agentUtils "github.com/lambda-platform/agent/utils"
-	"github.com/lambda-platform/lambda/DB/DBSchema"
-	"github.com/lambda-platform/lambda/DB/DBSchema/models"
 	"github.com/lambda-platform/dataform"
 	"github.com/lambda-platform/datagrid"
+	"github.com/lambda-platform/lambda/DB"
+	"github.com/lambda-platform/lambda/DB/DBSchema"
+	"github.com/lambda-platform/lambda/DB/DBSchema/models"
+	"github.com/lambda-platform/lambda/config"
+	"github.com/labstack/echo/v4"
+	"os"
+
 	//"github.com/lambda-platform/lambda/lambda/plugins/datasource"
 	"github.com/lambda-platform/lambda/utils"
-	"github.com/labstack/echo/v4"
 	"net/http"
-	"os"
 	"regexp"
 	"strconv"
 )
@@ -27,17 +28,20 @@ type vb_schema struct {
 }
 
 func Index(c echo.Context) error {
-
-
-
-	schemaFile, err := os.Open("models/db_schema.json")
-	defer schemaFile.Close()
-	if err != nil{
-		fmt.Println("schema FILE NOT FOUND")
-	}
 	dbSchema := DBSchema.VBSCHEMA{}
-	jsonParser := json.NewDecoder(schemaFile)
-	jsonParser.Decode(&dbSchema)
+
+	if(config.LambdaConfig.SchemaLoadMode == "auto"){
+		dbSchema = DBSchema.GetDBSchema()
+	} else {
+		schemaFile, err := os.Open("models/db_schema.json")
+		defer schemaFile.Close()
+		if err != nil{
+			fmt.Println("schema FILE NOT FOUND")
+		}
+		dbSchema = DBSchema.VBSCHEMA{}
+		jsonParser := json.NewDecoder(schemaFile)
+		jsonParser.Decode(&dbSchema)
+	}
 
 
 	gridList := []models.VBSchemaList{}

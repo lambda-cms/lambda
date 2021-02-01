@@ -89,26 +89,5 @@ func seedData() {
 
 	}
 
-	query := `CREATE VIEW ds_crud_log as SELECT
-		crud_log.id as id,
-			crud_log.user_id as user_id,
-			crud_log.ip as ip,
-			crud_log.user_agent as user_agent,
-			crud_log.action as action,
-			crud_log.schemaId as schemaId,
-			crud_log.row_id as row_id,
-			crud_log.input as input,
-			crud_log.created_at as created_at,
-			vb_schemas.name as name,
-			users.role as role,
-			users.login as login,
-			users.email as email,
-			users.first_name as first_name,
-			users.last_name as last_name
-		FROM
-		crud_log
-		LEFT JOIN vb_schemas on crud_log.schemaId = vb_schemas.id
-		LEFT JOIN users on crud_log.user_id = users.id`
 
-	DB.DB.Exec(query)
 }
