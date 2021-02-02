@@ -13,8 +13,7 @@ import (
 	"github.com/lambda-platform/lambda/config"
 	"github.com/labstack/echo/v4"
 	"os"
-
-	//"github.com/lambda-platform/lambda/lambda/plugins/datasource"
+	"github.com/lambda-platform/datasource"
 	"github.com/lambda-platform/lambda/utils"
 	"net/http"
 	"regexp"
@@ -285,31 +284,31 @@ func DeleteVB(c echo.Context) error {
 
 func BeforeDelete(id uint64, type_ string){
 
-	//if type_ == "datasource"{
-	//	vb := models.VBSchema{}
-	//
-	//	DB.DB.Where("id = ?", id).First(&vb)
-	//
-	//	datasource.DeleteView("ds_"+vb.Name)
-	//}
+	if type_ == "datasource"{
+		vb := models.VBSchema{}
+
+		DB.DB.Where("id = ?", id).First(&vb)
+
+		datasource.DeleteView("ds_"+vb.Name)
+	}
 
 }
 func BeforeSave(id uint64, type_ string){
 
-	//if type_ == "datasource"{
-	//	vb := models.VBSchema{}
-	//
-	//	DB.DB.Where("id = ?", id).First(&vb)
-	//
-	//	datasource.DeleteView("ds_"+vb.Name)
-	//}
+	if type_ == "datasource"{
+		vb := models.VBSchema{}
+
+		DB.DB.Where("id = ?", id).First(&vb)
+
+		datasource.DeleteView("ds_"+vb.Name)
+	}
 
 }
 func AfterSave(vb models.VBSchema, type_ string) error{
 
-	//if type_ == "datasource"{
-	//	return datasource.CreateView(vb.Name, vb.Schema)
-	//}
+	if type_ == "datasource"{
+		return datasource.CreateView(vb.Name, vb.Schema)
+	}
 
 	return nil
 
