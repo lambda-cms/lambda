@@ -19,7 +19,7 @@ func Set(e *echo.Echo, moduleName string, GetGridMODEL func(schema_id string) (i
 	/* REGISTER VIEWS */
 	AbsolutePath := utils.AbsolutePath()
 	templates["puzzle.html"] = template.Must(template.ParseFiles(AbsolutePath+"/templates/puzzle.html"))
-//	templates["moqup.html"] = template.Must(template.ParseFiles(AbsolutePath+"lambda/modules/puzzle/templates/moqup.html"))
+//
 
 	/*ROUTES */
 	e.GET("/build-me", handlers.BuildMe, agentMW.IsLoggedInCookie, agentMW.IsAdmin)
