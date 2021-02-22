@@ -381,4 +381,3 @@ func GetOptions(c echo.Context) error {
 	return c.JSON(http.StatusOK, optionsData)
 
 }
-

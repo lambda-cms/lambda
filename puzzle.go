@@ -1,29 +1,38 @@
 package puzzle
+
 import (
 	"github.com/lambda-platform/lambda/config"
 	"github.com/lambda-platform/agent/agentMW"
 	"github.com/lambda-platform/puzzle/handlers"
 	"github.com/lambda-platform/puzzle/utils"
+	templateUtils "github.com/lambda-platform/template/utils"
 	//"github.com/lambda-platform/lambda/lambda/plugins/dataanalytic"
 	lambdaUtils "github.com/lambda-platform/lambda/utils"
 	"github.com/labstack/echo/v4"
 	"html/template"
 )
+
 //
 func Set(e *echo.Echo, moduleName string, GetGridMODEL func(schema_id string) (interface{}, interface{}, string, string, interface{}, string)) {
 
-	if config.Config.App.Migrate == "true"{
+	if config.Config.App.Migrate == "true" {
 		utils.AutoMigrateSeed()
 	}
 	templates := lambdaUtils.GetTemplates(e)
-	/* REGISTER VIEWS */
 	AbsolutePath := utils.AbsolutePath()
-	templates["puzzle.html"] = template.Must(template.ParseFiles(AbsolutePath+"/templates/puzzle.html"))
-//
+	TemplatePath := templateUtils.AbsolutePath()
+	//* REGISTER VIEWS */
+	templates["puzzle.html"] = template.Must(template.ParseFiles(
+		TemplatePath+"views/paper.html",
+	))
+	template.Must(templates["puzzle.html"].ParseFiles(
+		AbsolutePath+"views/puzzle.html",
+	))
+
 
 	/*ROUTES */
 	e.GET("/build-me", handlers.BuildMe, agentMW.IsLoggedInCookie, agentMW.IsAdmin)
-	g :=e.Group("/lambda")
+	g := e.Group("/lambda")
 
 	//g.GET("/puzzle", handlers.Index, agentMW.IsLoggedInCookie)
 	g.GET("/puzzle", handlers.Index, agentMW.IsLoggedInCookie, agentMW.IsAdmin)
@@ -69,7 +78,5 @@ func Set(e *echo.Echo, moduleName string, GetGridMODEL func(schema_id string) (i
 	//a :=e.Group("/analytics")
 	//a.GET("/data", dataanalytic.AnalyticsData)
 	//a.POST("/pivot", dataanalytic.Pivot)
-
-
 
 }
