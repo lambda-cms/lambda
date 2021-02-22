@@ -32,7 +32,7 @@ func Index(c echo.Context) error {
 	if(config.LambdaConfig.SchemaLoadMode == "auto"){
 		dbSchema = DBSchema.GetDBSchema()
 	} else {
-		schemaFile, err := os.Open("models/db_schema.json")
+		schemaFile, err := os.Open("app/models/db_schema.json")
 		defer schemaFile.Close()
 		if err != nil{
 			fmt.Println("schema FILE NOT FOUND")
