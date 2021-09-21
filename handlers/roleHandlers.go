@@ -6,8 +6,8 @@ import (
 	"github.com/lambda-platform/lambda/config"
 	agentModels "github.com/lambda-platform/agent/models"
 	krudModels "github.com/lambda-platform/krud/models"
-	"github.com/lambda-platform/lambda/DB/DBSchema"
-	"github.com/lambda-platform/lambda/DB/DBSchema/models"
+
+	"github.com/lambda-platform/lambda/models"
 	"github.com/labstack/echo/v4"
 	"net/http"
 )
@@ -172,8 +172,8 @@ func GetKrudFields(c echo.Context) error {
 	DB.DB.Where("id = ?", krud.Form).Find(&form)
 	DB.DB.Where("id = ?", krud.Grid).Find(&grid)
 
-	var schema DBSchema.SCHEMA
-	var gridSchema DBSchema.SCHEMAGRID
+	var schema models.SCHEMA
+	var gridSchema models.SCHEMAGRID
 
 	json.Unmarshal([]byte(form.Schema), &schema)
 	json.Unmarshal([]byte(grid.Schema), &gridSchema)

@@ -8,8 +8,9 @@ import (
 	"github.com/lambda-platform/dataform"
 	"github.com/lambda-platform/datagrid"
 	"github.com/lambda-platform/lambda/DB"
-	"github.com/lambda-platform/lambda/DB/DBSchema"
-	"github.com/lambda-platform/lambda/DB/DBSchema/models"
+
+	"github.com/lambda-platform/lambda/models"
+	"github.com/lambda-platform/lambda/DBSchema"
 	"github.com/lambda-platform/lambda/config"
 	"github.com/labstack/echo/v4"
 	"os"
@@ -27,7 +28,7 @@ type vb_schema struct {
 }
 
 func Index(c echo.Context) error {
-	dbSchema := DBSchema.VBSCHEMA{}
+	dbSchema := models.DBSCHEMA{}
 
 	if(config.LambdaConfig.SchemaLoadMode == "auto"){
 		dbSchema = DBSchema.GetDBSchema()
@@ -37,7 +38,7 @@ func Index(c echo.Context) error {
 		if err != nil{
 			fmt.Println("schema FILE NOT FOUND")
 		}
-		dbSchema = DBSchema.VBSCHEMA{}
+		dbSchema = models.DBSCHEMA{}
 		jsonParser := json.NewDecoder(schemaFile)
 		jsonParser.Decode(&dbSchema)
 	}
@@ -57,6 +58,7 @@ func Index(c echo.Context) error {
 	//csrfToken := c.Get(middleware.DefaultCSRFConfig.ContextKey).(string)
 	csrfToken := ""
 	return c.Render(http.StatusOK, "puzzle.html", map[string]interface{}{
+		"lambda_config": config.LambdaConfig,
 		"title":                     config.LambdaConfig.Title,
 		"favicon":                     config.LambdaConfig.Favicon,
 		"app_logo":                     config.LambdaConfig.Logo,
@@ -174,10 +176,10 @@ func SaveVB(modelName string) echo.HandlerFunc {
 			if type_ == "form" {
 				//WriteModelData(id_)
 				//WriteModelData(modelName)
-				WriteModelDataById(modelName, vb.ID)
+				//WriteModelDataById(modelName, vb.ID)
 			} else if type_ == "grid" {
 				//WriteGridModel(modelName)
-				WriteGridModelById(modelName, vb.ID)
+				//WriteGridModelById(modelName, vb.ID)
 			}
 
 			if err != nil {
@@ -219,9 +221,9 @@ func SaveVB(modelName string) echo.HandlerFunc {
 			if type_ == "form" {
 				//WriteModelData(vb.ID)
 				//WriteModelData(modelName)
-				WriteModelDataById(modelName, vb.ID)
+				//WriteModelDataById(modelName, vb.ID)
 			} else if type_ == "grid" {
-				WriteGridModelById(modelName, vb.ID)
+				//WriteGridModelById(modelName, vb.ID)
 				//WriteGridModel(modelName)
 			}
 
@@ -254,7 +256,6 @@ func SaveVB(modelName string) echo.HandlerFunc {
 		})
 	}
 }
-
 func DeleteVB(c echo.Context) error {
 
 	type_ := c.Param("type")
@@ -267,6 +268,203 @@ func DeleteVB(c echo.Context) error {
 	BeforeDelete(id_, type_)
 
 	err := DB.DB.Where("id = ?", id).Where("type = ?", type_).Delete(&vbs).Error
+
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"status": "false",
+		})
+	} else {
+		return c.JSON(http.StatusOK, map[string]string{
+			"status": "true",
+		})
+	}
+
+
+
+}
+
+
+func GetProjectVB(c echo.Context) error {
+
+	pid := c.Param("pid")
+	type_ := c.Param("type")
+	id := c.Param("id")
+	condition := c.Param("condition")
+
+	if id != "" {
+
+
+
+
+
+			VBSchema := models.VBSchema{}
+
+			DB.DB.Table("project_schemas").Where("id = ? AND projects_id = ?", id, pid).First(&VBSchema)
+
+			if type_ == "form"{
+
+				if condition != ""{
+					if condition != "builder"{
+						return dataform.SetCondition(condition, c, VBSchema)
+					}
+				}
+			}
+
+			return c.JSON(http.StatusOK, map[string]interface{}{
+				"status": true,
+				"data":   VBSchema,
+			})
+
+
+
+
+
+
+	} else {
+		VBSchemas := []models.VBSchemaList{}
+
+		DB.DB.Table("project_schemas").Select("id, name, type, created_at, updated_at").Where("type = ? AND projects_id = ?", type_, pid).Find(&VBSchemas)
+
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"status": true,
+			"data":   VBSchemas,
+		})
+	}
+
+	return c.JSON(http.StatusBadRequest, map[string]interface{}{
+		"status": false,
+	})
+
+}
+func SaveProjectVB(modelName string) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		pid := c.Param("pid")
+		ProjectID, _ := strconv.Atoi(pid)
+		type_ := c.Param("type")
+		id := c.Param("id")
+		//condition := c.Param("condition")
+
+		vbs := new(vb_schema)
+		if err := c.Bind(vbs); err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]interface{}{
+				"status": false,
+				"error": err.Error(),
+			})
+		}
+
+		if id != "" {
+			id_, _ := strconv.ParseUint(id, 0, 64)
+
+			vb := models.ProjectVBSchema{}
+
+			DB.DB.Where("id = ?", id_).First(&vb)
+
+			vb.Name = vbs.Name
+			vb.ProjectID = ProjectID
+			vb.Schema = vbs.Schema
+			//_, err := vb.Update(context.Background(), DB, boil.Infer())
+
+			BeforeSave(id_, type_)
+
+			err := DB.DB.Save(&vb).Error
+
+			if type_ == "form" {
+				//WriteModelData(id_)
+				//WriteModelData(modelName)
+				//WriteModelDataById(modelName, vb.ID)
+			} else if type_ == "grid" {
+				//WriteGridModel(modelName)
+				//WriteGridModelById(modelName, vb.ID)
+			}
+
+			if err != nil {
+
+				return c.JSON(http.StatusBadRequest, map[string]interface{}{
+					"status": false,
+					"error": err.Error(),
+				})
+			} else {
+
+				//error := AfterSave(vb, type_)
+				//
+				//if(error != nil){
+				//	return c.JSON(http.StatusOK, map[string]interface{}{
+				//		"status": false,
+				//		"error":error.Error(),
+				//	})
+				//} else {
+					return c.JSON(http.StatusOK, map[string]interface{}{
+						"status": true,
+					})
+				//}
+			}
+
+		} else {
+			vb := models.ProjectVBSchema{
+				Name:   vbs.Name,
+				Schema: vbs.Schema,
+				Type:   type_,
+				ProjectID: ProjectID,
+				ID:0,
+			}
+
+			//err := vb.Insert(context.Background(), DB, boil.Infer())
+
+			DB.DB.NewRecord(vb) // => returns `true` as primary key is blank
+
+			err := DB.DB.Create(&vb).Error
+
+			if type_ == "form" {
+				//WriteModelData(vb.ID)
+				//WriteModelData(modelName)
+				//WriteModelDataById(modelName, vb.ID)
+			} else if type_ == "grid" {
+				//WriteGridModelById(modelName, vb.ID)
+				//WriteGridModel(modelName)
+			}
+
+
+
+			if err != nil {
+				return c.JSON(http.StatusBadRequest, map[string]string{
+					"status": "false",
+				})
+			} else {
+				//error := AfterSave(vb, type_)
+				//
+				//if(error != nil){
+				//	return c.JSON(http.StatusOK, map[string]interface{}{
+				//		"status": false,
+				//		"error":error.Error(),
+				//	})
+				//} else {
+					return c.JSON(http.StatusOK, map[string]interface{}{
+						"status": true,
+					})
+				//}
+
+			}
+
+		}
+
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"status": false,
+		})
+	}
+}
+func DeleteProjectVB(c echo.Context) error {
+
+	pid := c.Param("pid")
+	type_ := c.Param("type")
+	id := c.Param("id")
+	//condition := c.Param("condition")
+
+	vbs := new(vb_schema)
+	//id_, _ := strconv.ParseUint(id, 0, 64)
+	//
+	//BeforeDelete(id_, type_)
+
+	err := DB.DB.Table("project_schemas").Where("id = ? AND projects_id = ? AND type = ?", id, pid, type_).Delete(&vbs).Error
 
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{
@@ -326,39 +524,10 @@ func GridVB(GetGridMODEL func(schema_id string) (interface{}, interface{}, strin
 		return datagrid.Exec(c, schemaId, action, id, GetGridMODEL)
 	}
 }
-func WriteGridModel(modelName string) {
 
-	VBSchemas := []models.VBSchema{}
-	DB.DB.Where("type = ?", "grid").Find(&VBSchemas)
-	DBSchema.WriteGridModel(VBSchemas)
-	DBSchema.WriteGridDataCaller(VBSchemas, modelName)
-
-}
-func WriteGridModelById(modelName string, id uint64) {
-
-	VBSchemas := []models.VBSchema{}
-	DB.DB.Where("type = ? AND id = ?", "grid", id).Find(&VBSchemas)
-	DBSchema.WriteGridModel(VBSchemas)
-	DBSchema.WriteGridDataCaller(VBSchemas, modelName)
-
-}
 
 /*FROM*/
-func WriteModelDataById(modelName string, id uint64) {
-	VBSchemas := []models.VBSchema{}
-	DB.DB.Where("type = ? AND id = ?", "form", id).Find(&VBSchemas)
-	fmt.Println(len(VBSchemas))
-	DBSchema.WriteFormModel(VBSchemas)
-	DBSchema.WriteModelCaller(VBSchemas, modelName)
-	DBSchema.WriteValidationCaller(VBSchemas, modelName)
-}
-func WriteModelData(modelName string) {
-	VBSchemas := []models.VBSchema{}
-	DB.DB.Where("type = ?", "form").Find(&VBSchemas)
-	DBSchema.WriteFormModel(VBSchemas)
-	DBSchema.WriteModelCaller(VBSchemas, modelName)
-	DBSchema.WriteValidationCaller(VBSchemas, modelName)
-}
+
 func GetOptions(c echo.Context) error {
 
 	r := new(dataform.Relations)

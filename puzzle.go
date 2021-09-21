@@ -43,11 +43,16 @@ func Set(e *echo.Echo, moduleName string, GetGridMODEL func(schema_id string) (i
 	g.GET("/puzzle/schema-public/:type/:id", handlers.GetVB)
 	g.GET("/puzzle/schema/:type/:id/:condition", handlers.GetVB, agentMW.IsLoggedInCookie)
 
+
+
 	//VB SCHEMA
 	g.GET("/puzzle/table-schema/:table", handlers.GetTableSchema, agentMW.IsLoggedInCookie, agentMW.IsAdmin)
 	g.POST("/puzzle/schema/:type", handlers.SaveVB(moduleName), agentMW.IsLoggedInCookie, agentMW.IsAdmin)
 	g.POST("/puzzle/schema/:type/:id", handlers.SaveVB(moduleName), agentMW.IsLoggedInCookie, agentMW.IsAdmin)
 	g.DELETE("/puzzle/delete/vb_schemas/:type/:id", handlers.DeleteVB, agentMW.IsLoggedInCookie, agentMW.IsAdmin)
+
+
+
 
 	//GRID
 	g.POST("/puzzle/grid/:action/:schemaId", handlers.GridVB(GetGridMODEL), agentMW.IsLoggedInCookie)
@@ -64,19 +69,12 @@ func Set(e *echo.Echo, moduleName string, GetGridMODEL func(schema_id string) (i
 	g.POST("/puzzle/roles/store/:id", handlers.UpdateRole, agentMW.IsLoggedInCookie, agentMW.IsAdmin)
 	g.DELETE("/puzzle/roles/destroy/:id", handlers.DeleteRole, agentMW.IsLoggedInCookie, agentMW.IsAdmin)
 
-	//Chart. Visual Element
-	//ve := e.Group("/ve")
-	//ve.POST("/get-data-count", handlers.CountData)
-	//ve.POST("/get-data-pie", handlers.PieData)
-	//ve.POST("/get-data-table", handlers.TableData)
-	//ve.POST("/get-data", handlers.LineData)
-	////MOQUP. Visual Element
-	//
-	//e.GET("/moqup/:id", handlers.Moqup)
+	//Puzzle with project
 
-	//Analytic
-	//a :=e.Group("/analytics")
-	//a.GET("/data", dataanalytic.AnalyticsData)
-	//a.POST("/pivot", dataanalytic.Pivot)
+	g.GET("/puzzle/project/:pid/:type", handlers.GetProjectVB, agentMW.IsLoggedInCookie)
+	g.GET("/puzzle/project/:pid/:type/:id", handlers.GetProjectVB, agentMW.IsLoggedInCookie)
+	g.POST("/puzzle/project/:pid/:type", handlers.SaveProjectVB(moduleName), agentMW.IsLoggedInCookie)
+	g.POST("/puzzle/project/:pid/:type/:id", handlers.SaveProjectVB(moduleName), agentMW.IsLoggedInCookie)
+	g.DELETE("/puzzle/delete/project/vb_schemas/:pid/:type/:id", handlers.DeleteProjectVB, agentMW.IsLoggedInCookie)
 
 }
