@@ -8,16 +8,26 @@ import (
 	templateUtils "github.com/lambda-platform/template/utils"
 	//"github.com/lambda-platform/lambda/lambda/plugins/dataanalytic"
 	lambdaUtils "github.com/lambda-platform/lambda/utils"
+	"github.com/lambda-platform/datagrid"
 	"github.com/labstack/echo/v4"
 	"html/template"
 )
 
 //
-func Set(e *echo.Echo, moduleName string, GetGridMODEL func(schema_id string) (interface{}, interface{}, string, string, interface{}, string)) {
+func Set(e *echo.Echo, moduleName string, GetGridMODEL func(schema_id string) datagrid.Datagrid, isMicroservice bool, withUserRole bool) {
 
-	if config.Config.App.Migrate == "true" {
-		utils.AutoMigrateSeed()
+	if isMicroservice {
+
+	} else {
+		if config.Config.App.Migrate == "true" {
+			utils.AutoMigrateSeed()
+		}
 	}
+
+	if isMicroservice && withUserRole{
+		handlers.GetRoleData()
+	}
+
 	templates := lambdaUtils.GetTemplates(e)
 	AbsolutePath := utils.AbsolutePath()
 	TemplatePath := templateUtils.AbsolutePath()
@@ -32,6 +42,12 @@ func Set(e *echo.Echo, moduleName string, GetGridMODEL func(schema_id string) (i
 
 	/*ROUTES */
 	e.GET("/build-me", handlers.BuildMe, agentMW.IsLoggedInCookie, agentMW.IsAdmin)
+
+	if isMicroservice{
+		e.GET("/upload-schema", handlers.UploadSCHEMA)
+		e.GET("/get-roles", handlers.GetRolesData)
+	}
+
 	g := e.Group("/lambda")
 
 	//g.GET("/puzzle", handlers.Index, agentMW.IsLoggedInCookie)
@@ -73,6 +89,7 @@ func Set(e *echo.Echo, moduleName string, GetGridMODEL func(schema_id string) (i
 
 	g.GET("/puzzle/project/:pid/:type", handlers.GetProjectVB, agentMW.IsLoggedInCookie)
 	g.GET("/puzzle/project/:pid/:type/:id", handlers.GetProjectVB, agentMW.IsLoggedInCookie)
+	g.GET("/puzzle/project/:pid/:type/:id/builder", handlers.GetProjectVB, agentMW.IsLoggedInCookie)
 	g.POST("/puzzle/project/:pid/:type", handlers.SaveProjectVB(moduleName), agentMW.IsLoggedInCookie)
 	g.POST("/puzzle/project/:pid/:type/:id", handlers.SaveProjectVB(moduleName), agentMW.IsLoggedInCookie)
 	g.DELETE("/puzzle/delete/project/vb_schemas/:pid/:type/:id", handlers.DeleteProjectVB, agentMW.IsLoggedInCookie)

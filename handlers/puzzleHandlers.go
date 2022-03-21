@@ -6,7 +6,6 @@ import (
 	"fmt"
 	agentUtils "github.com/lambda-platform/agent/utils"
 	"github.com/lambda-platform/dataform"
-	"github.com/lambda-platform/datagrid"
 	"github.com/lambda-platform/lambda/DB"
 
 	"github.com/lambda-platform/lambda/models"
@@ -18,6 +17,7 @@ import (
 	"github.com/lambda-platform/lambda/utils"
 	"net/http"
 	"regexp"
+	"github.com/lambda-platform/datagrid"
 	"strconv"
 )
 
@@ -171,6 +171,12 @@ func SaveVB(modelName string) echo.HandlerFunc {
 
 			BeforeSave(id_, type_)
 
+			fmt.Println(vb.UpdatedAt)
+			fmt.Println(vb.UpdatedAt)
+			fmt.Println(vb.UpdatedAt.String())
+			fmt.Println(vb.UpdatedAt.GoString())
+
+
 			err := DB.DB.Save(&vb).Error
 
 			if type_ == "form" {
@@ -323,7 +329,7 @@ func GetProjectVB(c echo.Context) error {
 	} else {
 		VBSchemas := []models.VBSchemaList{}
 
-		DB.DB.Table("project_schemas").Select("id, name, type, created_at, updated_at").Where("type = ? AND projects_id = ?", type_, pid).Find(&VBSchemas)
+		DB.DB.Table("project_schemas").Select("id, name, type, created_at, updated_at").Where("type = ? AND projects_id = ?", type_, pid).Order("id ASC").Find(&VBSchemas)
 
 		return c.JSON(http.StatusOK, map[string]interface{}{
 			"status": true,
@@ -515,7 +521,8 @@ func AfterSave(vb models.VBSchema, type_ string) error{
 
 /*GRID*/
 
-func GridVB(GetGridMODEL func(schema_id string) (interface{}, interface{}, string, string, interface{}, string)) echo.HandlerFunc {
+
+func GridVB(GetGridMODEL func(schema_id string) datagrid.Datagrid) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		schemaId := c.Param("schemaId")
 		action := c.Param("action")
@@ -524,7 +531,6 @@ func GridVB(GetGridMODEL func(schema_id string) (interface{}, interface{}, strin
 		return datagrid.Exec(c, schemaId, action, id, GetGridMODEL)
 	}
 }
-
 
 /*FROM*/
 
