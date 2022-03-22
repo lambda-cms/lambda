@@ -171,10 +171,6 @@ func SaveVB(modelName string) echo.HandlerFunc {
 
 			BeforeSave(id_, type_)
 
-			fmt.Println(vb.UpdatedAt)
-			fmt.Println(vb.UpdatedAt)
-			fmt.Println(vb.UpdatedAt.String())
-			fmt.Println(vb.UpdatedAt.GoString())
 
 
 			err := DB.DB.Save(&vb).Error
