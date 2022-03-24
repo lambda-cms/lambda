@@ -14,20 +14,39 @@ import (
 
 func GetRolesMenus(c echo.Context) error {
 
-	roles := []agentModels.Role{}
-	menus := []models.VBSchema{}
-	kruds := []krudModels.Krud{}
+	microserviceID := c.Param("microserviceID")
+	if(microserviceID != ""){
+		roles := []agentModels.Role{}
+		menus := []models.ProjectVBSchema{}
+		kruds := []krudModels.ProjectCruds{}
 
-	DB.DB.Where("id != 1").Find(&roles)
-	DB.DB.Find(&kruds)
-	DB.DB.Where("type = 'menu'").Find(&menus)
+		DB.DB.Where("id != 1 AND id != 3 AND id != 4 AND id != 2").Find(&roles)
+		DB.DB.Find(&kruds)
+		DB.DB.Where("type = 'menu'").Find(&menus)
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"status": "true",
-		"roles":  roles,
-		"menus":  menus,
-		"cruds":  kruds,
-	})
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"status": "true",
+			"roles":  roles,
+			"menus":  menus,
+			"cruds":  kruds,
+		})
+	} else {
+		roles := []agentModels.Role{}
+		menus := []models.VBSchema{}
+		kruds := []krudModels.Krud{}
+
+		DB.DB.Where("id != 1").Find(&roles)
+		DB.DB.Find(&kruds)
+		DB.DB.Where("type = 'menu'").Find(&menus)
+
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"status": "true",
+			"roles":  roles,
+			"menus":  menus,
+			"cruds":  kruds,
+		})
+	}
+
 }
 
 type Role struct {

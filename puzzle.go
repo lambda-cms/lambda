@@ -79,6 +79,7 @@ func Set(e *echo.Echo, moduleName string, GetGridMODEL func(schema_id string) da
 
 	//Roles
 	g.GET("/puzzle/roles-menus", handlers.GetRolesMenus, agentMW.IsLoggedInCookie, agentMW.IsAdmin)
+	g.GET("/puzzle/roles-menus/:microserviceID", handlers.GetRolesMenus, agentMW.IsLoggedInCookie, agentMW.IsAdmin)
 	g.GET("/puzzle/get-krud-fields/:id", handlers.GetKrudFields, agentMW.IsLoggedInCookie, agentMW.IsAdmin)
 	g.POST("/puzzle/save-role", handlers.SaveRole, agentMW.IsLoggedInCookie, agentMW.IsAdmin)
 	g.POST("/puzzle/roles/create", handlers.CreateRole, agentMW.IsLoggedInCookie, agentMW.IsAdmin)
