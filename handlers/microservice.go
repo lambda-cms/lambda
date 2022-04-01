@@ -38,8 +38,13 @@ func UploadDBSCHEMA()  {
 
 	DBSchema.GenerateSchemaForCloud()
 
+	userWithUUID := "false"
 
-	url := config.LambdaConfig.LambdaMainServicePath+"/console/upload/"+config.LambdaConfig.ProjectKey
+	if config.Config.SysAdmin.UUID{
+		userWithUUID = "true"
+	}
+
+	url := config.LambdaConfig.LambdaMainServicePath+"/console/upload/"+config.LambdaConfig.ProjectKey+"/"+userWithUUID
 	//url := "http://localhost/console/upload/"+config.LambdaConfig.ProjectKey
 	method := "POST"
 
