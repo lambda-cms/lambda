@@ -38,13 +38,9 @@ func UploadDBSCHEMA()  {
 
 	DBSchema.GenerateSchemaForCloud()
 
-	userWithUUID := "false"
 
-	if config.Config.SysAdmin.UUID{
-		userWithUUID = "true"
-	}
 
-	url := config.LambdaConfig.LambdaMainServicePath+"/console/upload/"+config.LambdaConfig.ProjectKey+"/"+userWithUUID
+	url := config.LambdaConfig.LambdaMainServicePath+"/console/upload/"+config.LambdaConfig.ProjectKey
 	//url := "http://localhost/console/upload/"+config.LambdaConfig.ProjectKey
 	method := "POST"
 
@@ -108,9 +104,13 @@ func UploadDBSCHEMA()  {
 func ASyncFromCloud()  {
 
 
+	userWithUUID := "false"
 
+	if config.Config.SysAdmin.UUID{
+		userWithUUID = "true"
+	}
 
-	url := config.LambdaConfig.LambdaMainServicePath+"/console/project-data/"+config.LambdaConfig.ProjectKey+"/"+config.LambdaConfig.ModuleName
+	url := config.LambdaConfig.LambdaMainServicePath+"/console/project-data/"+config.LambdaConfig.ProjectKey+"/"+config.LambdaConfig.ModuleName+"/"+userWithUUID
 
 	method := "GET"
 
