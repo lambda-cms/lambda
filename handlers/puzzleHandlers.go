@@ -1,9 +1,10 @@
 package handlers
 
 import (
-	"database/sql"
+
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	agentUtils "github.com/lambda-platform/agent/utils"
 	"github.com/lambda-platform/dataform"
 	"github.com/lambda-platform/lambda/DB"
@@ -69,6 +70,7 @@ func Index(c echo.Context) error {
 		"user_fields":               config.LambdaConfig.UserDataFields,
 		"user_roles":               userRoles,
 		"data_form_custom_elements": config.LambdaConfig.DataFormCustomElements,
+		"data_grid_custom_elements": config.LambdaConfig.DataGridCustomElements,
 		"mix":                       utils.Mix,
 		"csrfToken":                       csrfToken,
 	})
@@ -103,16 +105,25 @@ func GetVB(c echo.Context) error {
 				"data":   VBSchema,
 			})
 		} else {
-
 			VBSchema := models.VBSchema{}
+			if (config.LambdaConfig.LambdaMainServicePath != "" && config.LambdaConfig.ProjectKey != "" &&  type_ == "form") || (config.LambdaConfig.LambdaMainServicePath != "" && config.LambdaConfig.ProjectKey != "" && type_ == "grid")  {
 
-			DB.DB.Where("id = ?", id).First(&VBSchema)
+				schemaFile, err := os.Open("lambda/schemas/form/"+id+".json")
 
-			if type_ == "form"{
+				if err == nil {
+					defer schemaFile.Close()
+					byteValue, _ := ioutil.ReadAll(schemaFile)
+					VBSchema.Schema = string(byteValue)
+				}
 
-				if condition != ""{
-					if condition != "builder"{
-						return dataform.SetCondition(condition, c, VBSchema)
+			} else {
+
+				DB.DB.Where("id = ?", id).First(&VBSchema)
+				if type_ == "form"{
+					if condition != ""{
+						if condition != "builder"{
+							return dataform.SetCondition(condition, c, VBSchema)
+						}
 					}
 				}
 			}
@@ -121,6 +132,8 @@ func GetVB(c echo.Context) error {
 				"status": true,
 				"data":   VBSchema,
 			})
+
+
 		}
 
 
@@ -540,12 +553,12 @@ func GetOptions(c echo.Context) error {
 			"error": err.Error(),
 		})
 	}
-	optionsData := map[string][]map[string]interface{}{}
+	var optionsData map[string][]dataform.FormOption = map[string][]dataform.FormOption{}
 
-	var DB_ *sql.DB
-	DB_ = DB.DB.DB()
+
 	for table, relation := range r.Relations {
-		data := dataform.OptionsData(DB_, relation, c)
+		data := dataform.OptionsData(relation, c)
+
 		optionsData[table] = data
 
 	}

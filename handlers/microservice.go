@@ -167,9 +167,9 @@ func ASyncFromCloud()  {
 	//DB.DB.Exec("TRUNCATE krud")
 	//DB.DB.Exec("TRUNCATE vb_schemas")
 	//
-	//for _, vb := range FormVbs {
-	//	DB.DB.Create(&vb)
-	//}
+	for _, vb := range FormVbs {
+		_ = ioutil.WriteFile("lambda/schemas/form/"+fmt.Sprintf("%d",vb.ID)+".json", []byte(vb.Schema), 0777)
+	}
 	//for _, vb := range GridVbs {
 	//	DB.DB.Create(&vb)
 	//}
@@ -434,14 +434,14 @@ type CloudData struct {
 		ProjectsID int    `json:"projects_id"`
 		Schema     string `json:"schema"`
 		Type       string `json:"type"`
-	} `json:"form-schemas"`
+	} `json:"grid-schemas"`
 	FormSchemas []struct {
 		ID         int    `json:"id"`
 		Name       string `json:"name"`
 		ProjectsID int    `json:"projects_id"`
 		Schema     string `json:"schema"`
 		Type       string `json:"type"`
-	} `json:"grid-schemas"`
+	} `json:"form-schemas"`
 	MenuSchemas []struct {
 		ID         int    `json:"id"`
 		Name       string `json:"name"`
