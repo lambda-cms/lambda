@@ -43,10 +43,7 @@ func Set(e *echo.Echo, moduleName string, GetGridMODEL func(schema_id string) da
 	/*ROUTES */
 	e.GET("/build-me", handlers.BuildMe, agentMW.IsLoggedInCookie, agentMW.IsAdmin)
 
-	if isMicroservice{
-		e.GET("/upload-schema", handlers.UploadSCHEMA)
-		e.GET("/get-roles", handlers.GetRolesData)
-	}
+
 
 	g := e.Group("/lambda")
 
@@ -81,13 +78,15 @@ func Set(e *echo.Echo, moduleName string, GetGridMODEL func(schema_id string) da
 	g.GET("/puzzle/roles-menus", handlers.GetRolesMenus, agentMW.IsLoggedInCookie, agentMW.IsAdmin)
 	g.GET("/puzzle/roles-menus/:microserviceID", handlers.GetRolesMenus, agentMW.IsLoggedInCookie, agentMW.IsAdmin)
 	g.GET("/puzzle/get-krud-fields/:id", handlers.GetKrudFields, agentMW.IsLoggedInCookie, agentMW.IsAdmin)
+	g.GET("/puzzle/get-krud-fields-micro/:id", handlers.GetKrudFieldsConsole, agentMW.IsLoggedInCookie, agentMW.IsAdmin)
 	g.POST("/puzzle/save-role", handlers.SaveRole, agentMW.IsLoggedInCookie, agentMW.IsAdmin)
 	g.POST("/puzzle/roles/create", handlers.CreateRole, agentMW.IsLoggedInCookie, agentMW.IsAdmin)
 	g.POST("/puzzle/roles/store/:id", handlers.UpdateRole, agentMW.IsLoggedInCookie, agentMW.IsAdmin)
 	g.DELETE("/puzzle/roles/destroy/:id", handlers.DeleteRole, agentMW.IsLoggedInCookie, agentMW.IsAdmin)
 
 	//Puzzle with project
-
+	g.GET("/puzzle/projects/:type", handlers.GetProjectVBs, agentMW.IsLoggedInCookie)
+	g.GET("/puzzle/projects/:type/:id", handlers.GetProjectVBs, agentMW.IsLoggedInCookie)
 	g.GET("/puzzle/project/:pid/:type", handlers.GetProjectVB, agentMW.IsLoggedInCookie)
 	g.GET("/puzzle/project/:pid/:type/:id", handlers.GetProjectVB, agentMW.IsLoggedInCookie)
 	g.GET("/puzzle/project/:pid/:type/:id/builder", handlers.GetProjectVB, agentMW.IsLoggedInCookie)

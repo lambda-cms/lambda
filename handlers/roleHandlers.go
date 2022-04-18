@@ -180,6 +180,43 @@ func DeleteRole(c echo.Context) error {
 
 }
 
+
+func GetKrudFieldsConsole(c echo.Context) error {
+	id := c.Param("id")
+	krud := krudModels.ProjectCruds{}
+	form := models.ProjectVBSchema{}
+	grid := models.ProjectVBSchema{}
+
+
+	DB.DB.Where("id = ?", id).Find(&krud)
+	DB.DB.Where("id = ?", krud.Form).Find(&form)
+	DB.DB.Where("id = ?", krud.Grid).Find(&grid)
+
+	var schema models.SCHEMA
+	var gridSchema models.SCHEMAGRID
+
+	json.Unmarshal([]byte(form.Schema), &schema)
+	json.Unmarshal([]byte(grid.Schema), &gridSchema)
+
+	formFields := []string{}
+	gridForm := []string{}
+
+
+	for _, field := range schema.Schema {
+		formFields = append(formFields, field.Model)
+	}
+	for _, field := range gridSchema.Schema {
+		gridForm = append(gridForm, field.Model)
+	}
+
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"status":      "true",
+		"user_fields": config.LambdaConfig.UserDataFields,
+		"form_fields": formFields,
+		"grid_fields": gridForm,
+	})
+
+}
 func GetKrudFields(c echo.Context) error {
 	id := c.Param("id")
 	krud := krudModels.Krud{}

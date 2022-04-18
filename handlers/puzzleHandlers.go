@@ -108,12 +108,14 @@ func GetVB(c echo.Context) error {
 			VBSchema := models.VBSchema{}
 			if (config.LambdaConfig.LambdaMainServicePath != "" && config.LambdaConfig.ProjectKey != "" &&  type_ == "form") || (config.LambdaConfig.LambdaMainServicePath != "" && config.LambdaConfig.ProjectKey != "" && type_ == "grid")  {
 
-				schemaFile, err := os.Open("lambda/schemas/form/"+id+".json")
+				schemaFile, err := os.Open("lambda/schemas/"+type_+"/"+id+".json")
 
 				if err == nil {
 					defer schemaFile.Close()
 					byteValue, _ := ioutil.ReadAll(schemaFile)
 					VBSchema.Schema = string(byteValue)
+					id_, _ := strconv.ParseUint(id, 0, 64)
+					VBSchema.ID = id_
 				}
 
 			} else {
@@ -298,7 +300,35 @@ func DeleteVB(c echo.Context) error {
 
 }
 
+func GetProjectVBs(c echo.Context) error {
 
+
+	type_ := c.Param("type")
+	id := c.Param("id")
+	VBSchemas := []models.VBSchemaList{}
+
+	if id != "" {
+		VBSchema := models.VBSchema{}
+
+		DB.DB.Table("project_schemas").Where("id = ?", id).First(&VBSchema)
+
+
+
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"status": true,
+			"data":   VBSchema,
+		})
+
+	} else {
+		DB.DB.Table("project_schemas").Select("id, name, type, created_at, updated_at").Where("type = ?", type_).Order("id ASC").Find(&VBSchemas)
+
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"status": true,
+			"data":   VBSchemas,
+		})
+	}
+
+}
 func GetProjectVB(c echo.Context) error {
 
 	pid := c.Param("pid")
@@ -351,6 +381,7 @@ func GetProjectVB(c echo.Context) error {
 	})
 
 }
+
 func SaveProjectVB(modelName string) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		pid := c.Param("pid")

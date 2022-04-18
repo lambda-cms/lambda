@@ -1,243 +1,194 @@
 package handlers
 
 import (
-	"bytes"
+
+	"context"
+	pb "github.com/lambda-platform/lambda/grpc/consoleProto"
+	"google.golang.org/grpc"
 	"encoding/json"
-	"github.com/labstack/echo/v4"
 	"github.com/lambda-platform/datasource"
 	"github.com/lambda-platform/lambda/DBSchema"
 	"github.com/lambda-platform/lambda/config"
-	"github.com/lambda-platform/lambda/models"
-	krudModels "github.com/lambda-platform/krud/models"
+
+	genertarModels "github.com/lambda-platform/generator/models"
+	"github.com/lambda-platform/generator"
+	gUtils "github.com/lambda-platform/generator/utils"
 	agentModels "github.com/lambda-platform/agent/models"
-	"strings"
-	"io"
-	"errors"
-	"archive/zip"
 	"io/ioutil"
-	"mime/multipart"
-	"net/http"
-	"os"
 	"fmt"
-	"path/filepath"
+	"time"
 	"strconv"
 	"github.com/lambda-platform/lambda/DB"
-	"github.com/lambda-platform/lambda/utils"
+	"github.com/lambda-platform/lambda/models"
+
 )
 
-func UploadSCHEMA(c echo.Context) error {
+func UploadDBSCHEMA() (*pb.Response, error) {
 
-	UploadDBSCHEMA()
+	conn, err := grpc.Dial(config.LambdaConfig.LambdaMainServicePath, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithTimeout(2 * time.Second))
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer conn.Close()
+	c := pb.NewConsoleClient(conn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
 
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"status": true,
+	lambdaConfig, err := ioutil.ReadFile("lambda.json")
+	if err != nil {
+		return nil, err
+	}
+	r, err := c.UploadDBSCHEMA(ctx, &pb.SchemaParams{
+		ProjectKey: config.LambdaConfig.ProjectKey,
+		DBSchema: GetDBCHEMA(),
+		LambdaConfig: lambdaConfig,
 	})
+
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("DB SCHEMA SENT")
+	return r, nil
 }
-func UploadDBSCHEMA()  {
+
+
+func GetDBCHEMA()[]byte  {
 
 	DBSchema.GenerateSchemaForCloud()
 
-
-
-	url := config.LambdaConfig.LambdaMainServicePath+"/console/upload/"+config.LambdaConfig.ProjectKey
-	//url := "http://localhost/console/upload/"+config.LambdaConfig.ProjectKey
-	method := "POST"
-
-
-	payload := &bytes.Buffer{}
-	writer := multipart.NewWriter(payload)
-	file, errFile1 := os.Open("app/models/db_schema.json")
-	defer file.Close()
-	part1,
-	errFile1 := writer.CreateFormFile("file",filepath.Base("app/models/db_schema.json"))
-	_, errFile1 = io.Copy(part1, file)
-	if errFile1 != nil {
-		fmt.Println(errFile1)
-
-	}
-
-
-	file2, errFile2 := os.Open("lambda.json")
-	defer file2.Close()
-	part2,
-	errFile2 := writer.CreateFormFile("lambda_config",filepath.Base("lambda.json"))
-	_, errFile2 = io.Copy(part2, file2)
-	if errFile2 != nil {
-		fmt.Println(errFile2)
-
-	}
-	err := writer.Close()
+	b, err := ioutil.ReadFile("app/models/db_schema.json")
 	if err != nil {
-		fmt.Println(err)
-
+		panic(err)
 	}
 
-
-	client := &http.Client {
-	}
-	req, err := http.NewRequest(method, url, payload)
-
-	if err != nil {
-		fmt.Println(err)
-
-	}
-	req.Header.Set("Content-Type", writer.FormDataContentType())
-	res, err := client.Do(req)
-	if err != nil {
-		fmt.Println(err)
-
-	}
-	defer res.Body.Close()
-
-	_, err2 := ioutil.ReadAll(res.Body)
-	if err2 != nil {
-		fmt.Println(err)
-
-
-	}
-
-
+	return b
 
 
 }
-func ASyncFromCloud()  {
+func GetLambdaSCHEMA()  {
 
 
-	userWithUUID := "false"
-
-	if config.Config.SysAdmin.UUID{
-		userWithUUID = "true"
-	}
-
-	url := config.LambdaConfig.LambdaMainServicePath+"/console/project-data/"+config.LambdaConfig.ProjectKey+"/"+config.LambdaConfig.ModuleName+"/"+userWithUUID
-
-	method := "GET"
-
-	client := &http.Client {
-	}
-	req, err := http.NewRequest(method, url, nil)
+	conn, err := grpc.Dial(config.LambdaConfig.LambdaMainServicePath, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithTimeout(2 * time.Second))
 
 	if err != nil {
-		fmt.Println(err)
-
+		 fmt.Println(err.Error())
 	}
-	res, err := client.Do(req)
+
+	defer conn.Close()
+	c := pb.NewConsoleClient(conn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	r, err := c.LambdaSCHEMA(ctx, &pb.LambdaSchemaParams{
+		ProjectKey: config.LambdaConfig.ProjectKey,
+	})
+
 	if err != nil {
-		fmt.Println(err)
-
+		fmt.Println(err.Error())
 	}
-	defer res.Body.Close()
-
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		fmt.Println(err)
-
-	}
-
 
 	data := CloudData{}
-	json.Unmarshal(body, &data)
+	json.Unmarshal(r.Data, &data)
 
-	//DSVBS := []models.VBSchema{}
-	FormVbs := []models.VBSchema{}
-	GridVbs := []models.VBSchema{}
-	MenuVbs := []models.VBSchema{}
-	ChartVbs := []models.VBSchema{}
-	MoqupVbs := []models.VBSchema{}
-	DatasourceVbs := []models.VBSchema{}
-	cruds := []krudModels.Krud{}
-	FormSchemasJSON, _ := json.Marshal(data.FormSchemas)
-	GridSchemasJSON, _ := json.Marshal(data.GridSchemas)
-	MenuSchemasJSON, _ := json.Marshal(data.MenuSchemas)
-	ChartSchemasJSON, _ := json.Marshal(data.ChartSchemas)
-	MoqupSchemasJSON, _ := json.Marshal(data.MoqupSchemas)
-	DatasourceSchemasJSON, _ := json.Marshal(data.DatasourceSchemas)
-	KrudJSON, _ := json.Marshal(data.Cruds)
-	json.Unmarshal([]byte(FormSchemasJSON), &FormVbs)
-	json.Unmarshal([]byte(GridSchemasJSON), &GridVbs)
-	json.Unmarshal([]byte(MenuSchemasJSON), &MenuVbs)
-	json.Unmarshal([]byte(ChartSchemasJSON), &ChartVbs)
-	json.Unmarshal([]byte(MoqupSchemasJSON), &MoqupVbs)
-	json.Unmarshal([]byte(DatasourceSchemasJSON), &DatasourceVbs)
-	json.Unmarshal([]byte(KrudJSON), &cruds)
-
-	//DB.DB.Where("type = ?", "datasource").Find(&DSVBS)
-
-	//DB.DB.Exec("TRUNCATE krud")
-	//DB.DB.Exec("TRUNCATE vb_schemas")
 	//
-	for _, vb := range FormVbs {
-		_ = ioutil.WriteFile("lambda/schemas/form/"+fmt.Sprintf("%d",vb.ID)+".json", []byte(vb.Schema), 0777)
-	}
-	//for _, vb := range GridVbs {
-	//	DB.DB.Create(&vb)
-	//}
-	//for _, vb := range MenuVbs {
-	//	DB.DB.Create(&vb)
-	//}
-	//for _, vb := range ChartVbs {
-	//	DB.DB.Create(&vb)
-	//}
-	//for _, vb := range MoqupVbs {
-	//	DB.DB.Create(&vb)
-	//}
 
-	for _, ds := range DatasourceVbs {
+
+
+	for _, ds := range data.DatasourceSchemas {
 		datasource.DeleteView(ds.Name)
 		errSave:= datasource.CreateView(ds.Name, ds.Schema)
 		if errSave != nil {
 			fmt.Println(errSave.Error())
 		}
 	}
+	fmt.Println("FORM & GRID generation starting")
 
-	var downloadError error = DownloadGeneratedCodes()
+	dbSchema := DBSchema.GetDBSchema()
+	/*
+	   Generate Form, Grid
+	*/
+	var userUUID string = "false"
 
-	if(downloadError != nil){
-		fmt.Println(downloadError)
-	} else {
+	if config.Config.SysAdmin.UUID {
+		userUUID = "true"
+	}
 
-		var unzip error = UnZipLambdaCodes()
+	generator.ModelInit(dbSchema, data.FormSchemas, data.GridSchemas, true, userUUID)
 
 
-		if(unzip != nil){
-			fmt.Println(unzip)
+	/*
+	   Generate GRAPHQL
+	*/
+	generator.GQLInit(dbSchema, data.GraphqlSchemas)
+
+	for _, vb := range data.FormSchemas {
+		_ = ioutil.WriteFile("lambda/schemas/form/"+fmt.Sprintf("%d",vb.ID)+".json", []byte(vb.Schema), 0777)
+	}
+	for _, vb := range data.GridSchemas {
+		_ = ioutil.WriteFile("lambda/schemas/grid/"+fmt.Sprintf("%d",vb.ID)+".json", []byte(vb.Schema), 0777)
+	}
+
+	microservicesList := `
+package microservices
+
+import "github.com/lambda-platform/lambda/models"
+
+`
+	for _, projectData := range data.Projects{
+		for _, projectSetting := range data.ProjectSettings{
+			if  projectData.ID == projectSetting.ProjectID {
+				microservicesList = microservicesList +  fmt.Sprintf(`
+var %s models.Microservice = models.Microservice{
+    GRPCURL: "%s",
+    ProductionURL: "%s",
+    ProjectID: %d,
+}`, projectData.Name, projectSetting.GRPCURL, projectSetting.ProductionURL, projectData.ID)
+			}
+
+
 		}
 
 	}
 
-
-
+	Werror := gUtils.WriteFileFormat(microservicesList, "lambda/microservices/microservices.go")
+	if Werror != nil {
+		fmt.Println(Werror)
+	}
 }
-func GetRolesData(c echo.Context) error {
 
-	GetRoleData()
-
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"status": true,
-	})
-}
 func GetRoleData() error{
-	url := config.LambdaConfig.LambdaMainServicePath+"/role-data"
-	resp, err := http.Get(url)
+
+
+	conn, err := grpc.Dial(config.LambdaConfig.LambdaMainServicePath, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithTimeout(2 * time.Second))
+
 	if err != nil {
-		return err
+		fmt.Println(err.Error())
 	}
 
-	defer resp.Body.Close()
+	defer conn.Close()
+	c := pb.NewConsoleClient(conn)
 
-	if resp.StatusCode != 200 {
-		return errors.New("file not found error")
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	r, err := c.RoleData(ctx, &pb.LambdaSchemaParams{
+		ProjectKey: config.LambdaConfig.ProjectKey,
+	})
+
+	if err != nil {
+		fmt.Println(err.Error())
 	}
+
 
 	data := map[string]interface{}{}
 
 
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-	json.Unmarshal(bodyBytes, &data)
+	json.Unmarshal(r.Data, &data)
 
 	roleData := map[int]map[string]interface{}{}
 	roleDataPre, _ := json.Marshal(data["roleData"])
@@ -263,211 +214,14 @@ func GetRoleData() error{
 
 	return nil
 }
-func DownloadGeneratedCodes() error{
-	url := config.LambdaConfig.LambdaMainServicePath+"/console/get-codes/"+config.LambdaConfig.ProjectKey
-
-	resp, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-
-
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return errors.New("file not found error")
-	}
-
-	// Create the file
-	out, err := os.Create("lambda.zip")
-	if err != nil {
-
-		return err
-	}
-	defer out.Close()
-
-	// Write the body to file
-	_, err = io.Copy(out, resp.Body)
-
-
-	return err
-}
-func UnZipLambdaCodes() error{
-	var dest string = "lambda"
-	var src string = "lambda.zip"
-	if(!utils.FileExists(src)){
-		return errors.New("Lambda file Not found")
-	} else {
-		formPatch :="lambda/models/form/"
-		gridPatch := "lambda/models/grid/"
-		if _, err := os.Stat(formPatch); os.IsNotExist(err) {
-			os.MkdirAll("lambda/models/form", 0755)
-			os.MkdirAll(formPatch, 0755)
-
-			os.MkdirAll("lambda/models/form/caller/", 0755)
-		} else {
-			os.MkdirAll("lambda/models/form", 0755)
-			os.RemoveAll(formPatch)
-			os.MkdirAll(formPatch, 0755)
-
-			os.MkdirAll("lambda/models/form/caller/", 0755)
-		}
-		if _, err := os.Stat(gridPatch); os.IsNotExist(err) {
-			os.MkdirAll("lambda/models/grid", 0755)
-			os.MkdirAll(gridPatch, 0755)
-			os.MkdirAll("lambda/models/grid/caller", 0755)
-		} else {
-			os.MkdirAll("lambda/models/grid", 0755)
-			os.RemoveAll(gridPatch)
-			os.MkdirAll(gridPatch, 0755)
-			os.MkdirAll("lambda/models/grid/caller", 0755)
-		}
-
-		graphqlPatch :=  "lambda/graph"
-		graphqlGeneratedPatch :=  "lambda/graph/generated"
-		modelsPatch :=  "lambda/graph/models"
-		schemaPatch :=  "lambda/graph/schemas"
-		resolversPatch :=  "lambda/graph/resolvers"
-		schemaCommonPatch :=  "lambda/graph/schemas-common"
-		if _, err := os.Stat(modelsPatch); os.IsNotExist(err) {
-
-			os.MkdirAll(graphqlPatch, 0755)
-			os.MkdirAll(graphqlGeneratedPatch, 0755)
-			os.MkdirAll(modelsPatch, 0755)
-			os.MkdirAll(schemaPatch, 0755)
-			os.MkdirAll(resolversPatch, 0755)
-			os.MkdirAll(schemaCommonPatch, 0755)
-
-		} else {
-
-			os.RemoveAll(graphqlPatch)
-			os.RemoveAll(graphqlGeneratedPatch)
-			os.RemoveAll(modelsPatch)
-			os.RemoveAll(schemaPatch)
-			os.RemoveAll(resolversPatch)
-			os.RemoveAll(schemaCommonPatch)
-			os.MkdirAll(graphqlPatch, 0755)
-			os.MkdirAll(graphqlGeneratedPatch, 0755)
-			os.MkdirAll(modelsPatch, 0755)
-			os.MkdirAll(schemaPatch, 0755)
-			os.MkdirAll(resolversPatch, 0755)
-			os.MkdirAll(schemaCommonPatch, 0755)
-		}
-
-		var filenames []string
-
-		r, err := zip.OpenReader(src)
-		if err != nil {
-			return  err
-		}
-		defer r.Close()
-
-		for _, f := range r.File {
-
-			// Store filename/path for returning and using later on
-			fpath := filepath.Join(dest, f.Name)
-
-			// Check for ZipSlip. More Info: http://bit.ly/2MsjAWE
-			if !strings.HasPrefix(fpath, filepath.Clean(dest)+string(os.PathSeparator)) {
-				return fmt.Errorf("%s: illegal file path", fpath)
-			}
-
-			filenames = append(filenames, fpath)
-
-			if f.FileInfo().IsDir() {
-				// Make Folder
-				os.MkdirAll(fpath, os.ModePerm)
-				continue
-			}
-
-			// Make File
-			if err = os.MkdirAll(filepath.Dir(fpath), os.ModePerm); err != nil {
-				return err
-			}
-
-			outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
-			if err != nil {
-				return err
-			}
-
-			rc, err := f.Open()
-			if err != nil {
-				return  err
-			}
-
-			_, err = io.Copy(outFile, rc)
-
-			// Close the file without defer to close before next iteration of loop
-			outFile.Close()
-			rc.Close()
-
-			if err != nil {
-				return  err
-			}
-		}
-		e := os.Remove(src)
-		if e != nil {
-			return e
-		}
-		return nil
-	}
-
-
-
-
-
-
-
-}
 type CloudData struct {
-	Cruds []struct {
-		Form       int    `json:"form"`
-		Grid       int    `json:"grid"`
-		ID         int    `json:"id"`
-		ProjectsID int    `json:"projects_id"`
-		Template   string `json:"template"`
-		Title      string `json:"title"`
-	} `json:"cruds"`
-	GridSchemas []struct {
-		ID         int    `json:"id"`
-		Name       string `json:"name"`
-		ProjectsID int    `json:"projects_id"`
-		Schema     string `json:"schema"`
-		Type       string `json:"type"`
-	} `json:"grid-schemas"`
-	FormSchemas []struct {
-		ID         int    `json:"id"`
-		Name       string `json:"name"`
-		ProjectsID int    `json:"projects_id"`
-		Schema     string `json:"schema"`
-		Type       string `json:"type"`
-	} `json:"form-schemas"`
-	MenuSchemas []struct {
-		ID         int    `json:"id"`
-		Name       string `json:"name"`
-		ProjectsID int    `json:"projects_id"`
-		Schema     string `json:"schema"`
-		Type       string `json:"type"`
-	} `json:"menu-schemas"`
-	ChartSchemas []struct {
-		ID         int    `json:"id"`
-		Name       string `json:"name"`
-		ProjectsID int    `json:"projects_id"`
-		Schema     string `json:"schema"`
-		Type       string `json:"type"`
-	} `json:"chart-schemas"`
-	MoqupSchemas []struct {
-		ID         int    `json:"id"`
-		Name       string `json:"name"`
-		ProjectsID int    `json:"projects_id"`
-		Schema     string `json:"schema"`
-		Type       string `json:"type"`
-	} `json:"moqup-schemas"`
-	DatasourceSchemas []struct {
-		ID         int    `json:"id"`
-		Name       string `json:"name"`
-		ProjectsID int    `json:"projects_id"`
-		Schema     string `json:"schema"`
-		Type       string `json:"type"`
-	} `json:"datasource-schemas"`
+	GridSchemas []genertarModels.ProjectSchemas `json:"grid-schemas"`
+	FormSchemas []genertarModels.ProjectSchemas `json:"form-schemas"`
+	MenuSchemas []genertarModels.ProjectSchemas `json:"menu-schemas"`
+	ChartSchemas []genertarModels.ProjectSchemas `json:"chart-schemas"`
+	MoqupSchemas []genertarModels.ProjectSchemas `json:"moqup-schemas"`
+	DatasourceSchemas []genertarModels.ProjectSchemas `json:"datasource-schemas"`
+	GraphqlSchemas []genertarModels.ProjectSchemas`json:"graphql-schemas"`
+	Projects []models.Projects `json:"projects"`
+	ProjectSettings []models.ProjectSettings `json:"project-settings"`
 }
