@@ -156,7 +156,9 @@ var %s models.Microservice = models.Microservice{
 	}
 
 	Werror := gUtils.WriteFileFormat(microservicesList, "lambda/microservices/microservices.go")
+
 	if Werror != nil {
+
 		fmt.Println(Werror)
 	}
 }
