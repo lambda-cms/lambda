@@ -24,9 +24,9 @@ func Set(e *echo.Echo, moduleName string, GetGridMODEL func(schema_id string) da
 		}
 	}
 
-	if isMicroservice && withUserRole{
-		handlers.GetRoleData()
-	}
+	//if isMicroservice && withUserRole{
+	//	handlers.GetRoleData()
+	//}
 
 	templates := lambdaUtils.GetTemplates(e)
 	AbsolutePath := utils.AbsolutePath()
